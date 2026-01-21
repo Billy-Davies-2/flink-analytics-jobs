@@ -1,0 +1,90 @@
+-- =============================================================================
+-- Iceberg Sinks for Persistent Storage
+-- =============================================================================
+-- These sinks write materialized view data to Iceberg tables via Nessie catalog
+--
+-- Prerequisites:
+--   - Nessie catalog running at http://nessie:19120
+--   - S3/MinIO bucket for warehouse storage
+-- =============================================================================
+
+-- Note: RisingWave Iceberg sink support is still evolving.
+-- Check the latest documentation for current syntax.
+-- https://docs.risingwave.com/docs/current/sink-to-iceberg/
+
+-- -----------------------------------------------------------------------------
+-- Create Iceberg Sink for 1-Minute Route Metrics
+-- -----------------------------------------------------------------------------
+-- CREATE SINK route_metrics_1m_iceberg
+-- FROM route_metrics_1m
+-- WITH (
+--     connector = 'iceberg',
+--     type = 'append-only',
+--     catalog.name = 'nessie',
+--     catalog.type = 'rest',
+--     catalog.uri = 'http://nessie:19120/iceberg',
+--     warehouse.path = 's3a://iceberg-warehouse',
+--     database.name = 'httproute_analytics',
+--     table.name = 'route_metrics_1m',
+--     s3.endpoint = 'http://minio:9000',
+--     s3.access.key = 'minioadmin',
+--     s3.secret.key = 'minioadmin',
+--     s3.path.style.access = 'true'
+-- );
+
+-- -----------------------------------------------------------------------------
+-- Create Iceberg Sink for Error Events  
+-- -----------------------------------------------------------------------------
+-- CREATE SINK error_events_iceberg
+-- FROM error_events
+-- WITH (
+--     connector = 'iceberg',
+--     type = 'append-only',
+--     catalog.name = 'nessie',
+--     catalog.type = 'rest',
+--     catalog.uri = 'http://nessie:19120/iceberg',
+--     warehouse.path = 's3a://iceberg-warehouse',
+--     database.name = 'httproute_analytics',
+--     table.name = 'error_events',
+--     s3.endpoint = 'http://minio:9000',
+--     s3.access.key = 'minioadmin',
+--     s3.secret.key = 'minioadmin',
+--     s3.path.style.access = 'true'
+-- );
+
+-- =============================================================================
+-- Alternative: Write to PostgreSQL for simpler querying
+-- =============================================================================
+-- If Iceberg sink is not available in your RisingWave version,
+-- you can sink to PostgreSQL and use tools like pg_flo or Debezium
+-- to sync to Iceberg.
+
+-- CREATE SINK route_metrics_postgres
+-- FROM route_metrics_1m
+-- WITH (
+--     connector = 'jdbc',
+--     jdbc.url = 'jdbc:postgresql://postgres:5432/analytics',
+--     table.name = 'route_metrics_1m',
+--     type = 'upsert',
+--     primary_key = 'http_route,window_start'
+-- );
+
+-- =============================================================================
+-- For now, query materialized views directly in RisingWave
+-- =============================================================================
+-- RisingWave maintains materialized views in its internal storage.
+-- You can query them with any PostgreSQL-compatible client.
+--
+-- Example queries:
+--
+-- Latest 1-minute metrics:
+-- SELECT * FROM route_metrics_1m ORDER BY window_end DESC LIMIT 20;
+--
+-- Error trend:
+-- SELECT 
+--     date_trunc('hour', window_end) as hour,
+--     http_route,
+--     SUM(client_error_count + server_error_count) as total_errors
+-- FROM route_metrics_1m
+-- GROUP BY 1, 2
+-- ORDER BY 1 DESC, 3 DESC;
