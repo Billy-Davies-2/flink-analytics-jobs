@@ -1,6 +1,8 @@
 package com.homelab.flink.common;
 
-import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptions;
+import org.apache.flink.configuration.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,16 +27,60 @@ public class NatsJetStreamSourceConfig {
     public static final String DEFAULT_CONSUMER = "flink-httproute-analytics";
     public static final String DEFAULT_DURABLE = "flink-httproute-analytics";
 
-    // Parameter keys
-    public static final String PARAM_NATS_URL = "nats.url";
-    public static final String PARAM_STREAM = "nats.stream";
-    public static final String PARAM_SUBJECT = "nats.subject";
-    public static final String PARAM_CONSUMER = "nats.consumer";
-    public static final String PARAM_DURABLE = "nats.durable";
-    public static final String PARAM_BATCH_SIZE = "nats.batch.size";
-    public static final String PARAM_MAX_WAIT_MS = "nats.max.wait.ms";
-    public static final String PARAM_ACK_WAIT_MS = "nats.ack.wait.ms";
-    public static final String PARAM_DELIVER_POLICY = "nats.deliver.policy";
+    // ConfigOptions for type-safe configuration
+    public static final ConfigOption<String> NATS_URL = ConfigOptions
+        .key("nats.url")
+        .stringType()
+        .defaultValue(DEFAULT_NATS_URL)
+        .withDescription("NATS server URL");
+
+    public static final ConfigOption<String> STREAM = ConfigOptions
+        .key("nats.stream")
+        .stringType()
+        .defaultValue(DEFAULT_STREAM)
+        .withDescription("JetStream stream name");
+
+    public static final ConfigOption<String> SUBJECT = ConfigOptions
+        .key("nats.subject")
+        .stringType()
+        .defaultValue(DEFAULT_SUBJECT)
+        .withDescription("NATS subject to subscribe to");
+
+    public static final ConfigOption<String> CONSUMER = ConfigOptions
+        .key("nats.consumer")
+        .stringType()
+        .defaultValue(DEFAULT_CONSUMER)
+        .withDescription("JetStream consumer name");
+
+    public static final ConfigOption<String> DURABLE = ConfigOptions
+        .key("nats.durable")
+        .stringType()
+        .defaultValue(DEFAULT_DURABLE)
+        .withDescription("Durable consumer name");
+
+    public static final ConfigOption<Integer> BATCH_SIZE = ConfigOptions
+        .key("nats.batch.size")
+        .intType()
+        .defaultValue(100)
+        .withDescription("Batch size for fetching messages");
+
+    public static final ConfigOption<Long> MAX_WAIT_MS = ConfigOptions
+        .key("nats.max.wait.ms")
+        .longType()
+        .defaultValue(5000L)
+        .withDescription("Maximum wait time in milliseconds");
+
+    public static final ConfigOption<Long> ACK_WAIT_MS = ConfigOptions
+        .key("nats.ack.wait.ms")
+        .longType()
+        .defaultValue(30000L)
+        .withDescription("Acknowledgment wait time in milliseconds");
+
+    public static final ConfigOption<String> DELIVER_POLICY = ConfigOptions
+        .key("nats.deliver.policy")
+        .stringType()
+        .defaultValue("all")
+        .withDescription("Deliver policy: all, last, new, last_per_subject");
 
     private final String natsUrl;
     private final String stream;
@@ -55,20 +101,20 @@ public class NatsJetStreamSourceConfig {
     }
 
     /**
-     * Creates a NatsJetStreamSourceConfig from ParameterTool arguments.
+     * Creates a NatsJetStreamSourceConfig from Configuration.
      *
-     * @param params CLI parameters
+     * @param config Flink Configuration
      */
-    public NatsJetStreamSourceConfig(ParameterTool params) {
-        this.natsUrl = params.get(PARAM_NATS_URL, DEFAULT_NATS_URL);
-        this.stream = params.get(PARAM_STREAM, DEFAULT_STREAM);
-        this.subject = params.get(PARAM_SUBJECT, DEFAULT_SUBJECT);
-        this.consumer = params.get(PARAM_CONSUMER, DEFAULT_CONSUMER);
-        this.durable = params.get(PARAM_DURABLE, DEFAULT_DURABLE);
-        this.batchSize = params.getInt(PARAM_BATCH_SIZE, 100);
-        this.maxWait = Duration.ofMillis(params.getLong(PARAM_MAX_WAIT_MS, 5000));
-        this.ackWait = Duration.ofMillis(params.getLong(PARAM_ACK_WAIT_MS, 30000));
-        this.deliverPolicy = parseDeliverPolicy(params.get(PARAM_DELIVER_POLICY, "all"));
+    public NatsJetStreamSourceConfig(Configuration config) {
+        this.natsUrl = config.get(NATS_URL);
+        this.stream = config.get(STREAM);
+        this.subject = config.get(SUBJECT);
+        this.consumer = config.get(CONSUMER);
+        this.durable = config.get(DURABLE);
+        this.batchSize = config.get(BATCH_SIZE);
+        this.maxWait = Duration.ofMillis(config.get(MAX_WAIT_MS));
+        this.ackWait = Duration.ofMillis(config.get(ACK_WAIT_MS));
+        this.deliverPolicy = parseDeliverPolicy(config.get(DELIVER_POLICY));
     }
 
     /**

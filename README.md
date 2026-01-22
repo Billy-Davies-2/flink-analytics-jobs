@@ -108,7 +108,7 @@ metadata:
   name: httproute-realtime-analytics
   namespace: analytics
 spec:
-  image: flink:1.20.0-java21
+  image: flink:1.20.3-java17
   flinkVersion: v1_20
   flinkConfiguration:
     taskmanager.numberOfTaskSlots: "2"

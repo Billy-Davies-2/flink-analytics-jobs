@@ -97,7 +97,7 @@ services:
 
   # Flink JobManager for local testing
   flink-jobmanager:
-    image: flink:1.20.0-java21
+    image: flink:1.20.3-java17
     ports:
       - "8081:8081"
     command: jobmanager
@@ -118,7 +118,7 @@ services:
 
   # Flink TaskManager
   flink-taskmanager:
-    image: flink:1.20.0-java21
+    image: flink:1.20.3-java17
     depends_on:
       - flink-jobmanager
     command: taskmanager

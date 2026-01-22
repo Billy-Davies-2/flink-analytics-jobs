@@ -1,6 +1,7 @@
 package com.homelab.flink.common;
 
-import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.table.api.TableEnvironment;
 import org.slf4j.Logger;
@@ -26,15 +27,54 @@ public class IcebergCatalogConfig {
     public static final String DEFAULT_CATALOG_NAME = "nessie";
     public static final String DEFAULT_BRANCH = "main";
 
-    // Parameter keys
-    public static final String PARAM_NESSIE_URI = "nessie.uri";
-    public static final String PARAM_WAREHOUSE = "iceberg.warehouse";
-    public static final String PARAM_CATALOG_NAME = "iceberg.catalog.name";
-    public static final String PARAM_NESSIE_BRANCH = "nessie.branch";
-    public static final String PARAM_S3_ENDPOINT = "s3.endpoint";
-    public static final String PARAM_S3_ACCESS_KEY = "s3.access.key";
-    public static final String PARAM_S3_SECRET_KEY = "s3.secret.key";
-    public static final String PARAM_S3_PATH_STYLE = "s3.path.style.access";
+    // ConfigOptions for type-safe configuration
+    public static final ConfigOption<String> NESSIE_URI = ConfigOptions
+        .key("nessie.uri")
+        .stringType()
+        .defaultValue(DEFAULT_NESSIE_URI)
+        .withDescription("Nessie server URI");
+
+    public static final ConfigOption<String> WAREHOUSE = ConfigOptions
+        .key("iceberg.warehouse")
+        .stringType()
+        .defaultValue(DEFAULT_WAREHOUSE)
+        .withDescription("Iceberg warehouse location");
+
+    public static final ConfigOption<String> CATALOG_NAME = ConfigOptions
+        .key("iceberg.catalog.name")
+        .stringType()
+        .defaultValue(DEFAULT_CATALOG_NAME)
+        .withDescription("Catalog name");
+
+    public static final ConfigOption<String> NESSIE_BRANCH = ConfigOptions
+        .key("nessie.branch")
+        .stringType()
+        .defaultValue(DEFAULT_BRANCH)
+        .withDescription("Nessie branch name");
+
+    public static final ConfigOption<String> S3_ENDPOINT = ConfigOptions
+        .key("s3.endpoint")
+        .stringType()
+        .noDefaultValue()
+        .withDescription("S3 endpoint URL");
+
+    public static final ConfigOption<String> S3_ACCESS_KEY = ConfigOptions
+        .key("s3.access.key")
+        .stringType()
+        .noDefaultValue()
+        .withDescription("S3 access key");
+
+    public static final ConfigOption<String> S3_SECRET_KEY = ConfigOptions
+        .key("s3.secret.key")
+        .stringType()
+        .noDefaultValue()
+        .withDescription("S3 secret key");
+
+    public static final ConfigOption<String> S3_PATH_STYLE = ConfigOptions
+        .key("s3.path.style.access")
+        .stringType()
+        .noDefaultValue()
+        .withDescription("Enable S3 path style access");
 
     private final String nessieUri;
     private final String warehouse;
@@ -43,28 +83,32 @@ public class IcebergCatalogConfig {
     private final Map<String, String> s3Config;
 
     /**
-     * Creates an IcebergCatalogConfig from ParameterTool arguments.
+     * Creates an IcebergCatalogConfig from Configuration.
      *
-     * @param params CLI parameters
+     * @param config Flink Configuration
      */
-    public IcebergCatalogConfig(ParameterTool params) {
-        this.nessieUri = params.get(PARAM_NESSIE_URI, DEFAULT_NESSIE_URI);
-        this.warehouse = params.get(PARAM_WAREHOUSE, DEFAULT_WAREHOUSE);
-        this.catalogName = params.get(PARAM_CATALOG_NAME, DEFAULT_CATALOG_NAME);
-        this.branch = params.get(PARAM_NESSIE_BRANCH, DEFAULT_BRANCH);
+    public IcebergCatalogConfig(Configuration config) {
+        this.nessieUri = config.get(NESSIE_URI);
+        this.warehouse = config.get(WAREHOUSE);
+        this.catalogName = config.get(CATALOG_NAME);
+        this.branch = config.get(NESSIE_BRANCH);
 
         this.s3Config = new HashMap<>();
-        if (params.has(PARAM_S3_ENDPOINT)) {
-            s3Config.put("s3.endpoint", params.get(PARAM_S3_ENDPOINT));
+        String s3Endpoint = config.get(S3_ENDPOINT);
+        if (s3Endpoint != null) {
+            s3Config.put("s3.endpoint", s3Endpoint);
         }
-        if (params.has(PARAM_S3_ACCESS_KEY)) {
-            s3Config.put("s3.access-key-id", params.get(PARAM_S3_ACCESS_KEY));
+        String s3AccessKey = config.get(S3_ACCESS_KEY);
+        if (s3AccessKey != null) {
+            s3Config.put("s3.access-key-id", s3AccessKey);
         }
-        if (params.has(PARAM_S3_SECRET_KEY)) {
-            s3Config.put("s3.secret-access-key", params.get(PARAM_S3_SECRET_KEY));
+        String s3SecretKey = config.get(S3_SECRET_KEY);
+        if (s3SecretKey != null) {
+            s3Config.put("s3.secret-access-key", s3SecretKey);
         }
-        if (params.has(PARAM_S3_PATH_STYLE)) {
-            s3Config.put("s3.path-style-access", params.get(PARAM_S3_PATH_STYLE));
+        String s3PathStyle = config.get(S3_PATH_STYLE);
+        if (s3PathStyle != null) {
+            s3Config.put("s3.path-style-access", s3PathStyle);
         }
     }
 

@@ -14,7 +14,11 @@ import com.homelab.flink.sink.IcebergSinkFactory;
 import com.homelab.flink.source.NatsJetStreamSource;
 
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
-import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptions;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.ExternalizedCheckpointRetention;
+import org.apache.flink.core.execution.CheckpointingMode;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.CheckpointConfig;
@@ -49,28 +53,34 @@ public class HTTPRouteRealtimeAnalytics {
 
     private static final Logger LOG = LoggerFactory.getLogger(HTTPRouteRealtimeAnalytics.class);
 
-    // CLI parameter keys
-    public static final String PARAM_PARALLELISM = "parallelism";
-    public static final String PARAM_LATENCY_THRESHOLD = "latency.threshold.ms";
+    // ConfigOptions for type-safe configuration
+    public static final ConfigOption<Integer> PARALLELISM = ConfigOptions
+        .key("parallelism")
+        .intType()
+        .defaultValue(2)
+        .withDescription("Job parallelism");
 
-    // Default values
-    public static final int DEFAULT_PARALLELISM = 2;
-    public static final long DEFAULT_LATENCY_THRESHOLD_MS = 500;
+    public static final ConfigOption<Long> LATENCY_THRESHOLD = ConfigOptions
+        .key("latency.threshold.ms")
+        .longType()
+        .defaultValue(500L)
+        .withDescription("Latency threshold in milliseconds for alerts");
+
     public static final String DATABASE_NAME = "httproute_analytics";
 
     public static void main(String[] args) throws Exception {
-        // Parse command line arguments
-        ParameterTool params = ParameterTool.fromArgs(args);
+        // Parse command line arguments into Configuration
+        Configuration config = Configuration.fromMap(parseArgs(args));
         
         LOG.info("Starting HTTPRoute Real-Time Analytics job");
-        LOG.info("Configuration: {}", params.toMap());
+        LOG.info("Configuration: {}", config.toMap());
 
         // Create execution environment
-        StreamExecutionEnvironment env = createExecutionEnvironment(params);
+        StreamExecutionEnvironment env = createExecutionEnvironment(config);
         StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env);
 
         // Configure Iceberg catalog
-        IcebergCatalogConfig catalogConfig = new IcebergCatalogConfig(params);
+        IcebergCatalogConfig catalogConfig = new IcebergCatalogConfig(config);
         catalogConfig.registerCatalog(tableEnv);
         catalogConfig.createDatabaseIfNotExists(tableEnv, DATABASE_NAME);
 
@@ -84,7 +94,7 @@ public class HTTPRouteRealtimeAnalytics {
         sinkFactory.createLatencyAlertsTable();
 
         // Create NATS JetStream source
-        NatsJetStreamSourceConfig natsConfig = new NatsJetStreamSourceConfig(params);
+        NatsJetStreamSourceConfig natsConfig = new NatsJetStreamSourceConfig(config);
         LOG.info("NATS JetStream config: {}", natsConfig);
         
         NatsJetStreamSource natsSource = new NatsJetStreamSource(natsConfig);
@@ -97,13 +107,11 @@ public class HTTPRouteRealtimeAnalytics {
 
         // Read from NATS JetStream source
         DataStream<AccessLog> accessLogs = env
-            .addSource(natsSource)
-            .name("NATS JetStream Source")
-            .uid("nats-jetstream-source")
-            .assignTimestampsAndWatermarks(watermarkStrategy);
+            .fromSource(natsSource, watermarkStrategy, "NATS JetStream Source")
+            .uid("nats-jetstream-source");
 
         // Get latency threshold for alerts
-        long latencyThresholdMs = params.getLong(PARAM_LATENCY_THRESHOLD, DEFAULT_LATENCY_THRESHOLD_MS);
+        long latencyThresholdMs = config.get(LATENCY_THRESHOLD);
 
         // Process 1-minute tumbling window aggregations
         SingleOutputStreamOperator<RouteMetrics> metrics1m = accessLogs
@@ -155,20 +163,34 @@ public class HTTPRouteRealtimeAnalytics {
     }
 
     /**
+     * Parses command line arguments into a Map.
+     */
+    private static java.util.Map<String, String> parseArgs(String[] args) {
+        java.util.Map<String, String> map = new java.util.HashMap<>();
+        for (String arg : args) {
+            if (arg.startsWith("--")) {
+                String[] parts = arg.substring(2).split("=", 2);
+                if (parts.length == 2) {
+                    map.put(parts[0], parts[1]);
+                }
+            }
+        }
+        return map;
+    }
+
+    /**
      * Creates and configures the Flink execution environment.
      */
-    private static StreamExecutionEnvironment createExecutionEnvironment(ParameterTool params) {
+    private static StreamExecutionEnvironment createExecutionEnvironment(Configuration config) {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
         // Set parallelism
-        int parallelism = params.getInt(PARAM_PARALLELISM, DEFAULT_PARALLELISM);
+        int parallelism = config.get(PARALLELISM);
         env.setParallelism(parallelism);
-
-        // Make parameters available to all operators
-        env.getConfig().setGlobalJobParameters(params);
 
         // Configure checkpointing for exactly-once processing
         CheckpointConfig checkpointConfig = env.getCheckpointConfig();
+        checkpointConfig.setCheckpointingConsistencyMode(CheckpointingMode.EXACTLY_ONCE);
         checkpointConfig.setCheckpointInterval(60_000);
         checkpointConfig.setMinPauseBetweenCheckpoints(30_000);
         checkpointConfig.setCheckpointTimeout(120_000);
@@ -176,8 +198,8 @@ public class HTTPRouteRealtimeAnalytics {
         checkpointConfig.setTolerableCheckpointFailureNumber(3);
         
         // Enable externalized checkpoints for recovery
-        checkpointConfig.setExternalizedCheckpointCleanup(
-            CheckpointConfig.ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION
+        checkpointConfig.setExternalizedCheckpointRetention(
+            ExternalizedCheckpointRetention.RETAIN_ON_CANCELLATION
         );
 
         LOG.info("Execution environment configured with parallelism={}", parallelism);
