@@ -239,6 +239,8 @@
                     <container>
                         <user>flink</user>
                         <workingDirectory>/opt/flink</workingDirectory>
+                        <!-- Preserve Flink's default entrypoint -->
+                        <entrypoint>INHERIT</entrypoint>
                         <environment>
                             <FLINK_PROPERTIES>taskmanager.numberOfTaskSlots: 2</FLINK_PROPERTIES>
                         </environment>
