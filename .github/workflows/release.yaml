@@ -211,12 +211,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: build-artifacts
-          path: .
-
       - name: Set lowercase image name
         id: image_name
         run: echo "IMAGE_NAME_LOWER=${IMAGE_NAME,,}" >> $GITHUB_OUTPUT
