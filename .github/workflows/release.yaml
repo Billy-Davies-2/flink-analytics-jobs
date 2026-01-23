@@ -19,6 +19,8 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      artifact-uploaded: ${{ steps.upload.outputs.artifact-id }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -37,11 +39,14 @@ jobs:
         run: mvn test -B
 
       - name: Upload build artifacts
+        id: upload
         uses: actions/upload-artifact@v4
         with:
-          name: jars
+          name: build-artifacts
           path: |
             httproute-realtime-analytics/target/*-shaded.jar
+            httproute-realtime-analytics/target/classes/
+            common/target/classes/
           retention-days: 7
 
   version-and-release:
@@ -111,7 +116,7 @@ jobs:
           git push origin "v${{ steps.version.outputs.new_version }}"
 
   release:
-    needs: version-and-release
+    needs: [build, version-and-release]
     runs-on: ubuntu-latest
     if: needs.version-and-release.outputs.should_release == 'true' || startsWith(github.ref, 'refs/tags/v')
     permissions:
@@ -119,8 +124,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
         with:
-          fetch-depth: 0
+          name: build-artifacts
+          path: .
 
       - name: Get version
         id: get_version
@@ -131,16 +140,6 @@ jobs:
             echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Set up JDK
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: ${{ env.JAVA_DISTRIBUTION }}
-          cache: maven
-
-      - name: Build release JARs
-        run: mvn clean package -DskipTests -B
-
       - name: Prepare release assets
         run: |
           mkdir -p release-assets
@@ -148,7 +147,6 @@ jobs:
              release-assets/httproute-realtime-analytics.jar
 
       - name: Generate release notes
-        id: release_notes
         run: |
           cat << EOF > release-notes.md
           ## Flink Analytics Jobs v${{ steps.get_version.outputs.VERSION }}
@@ -156,6 +154,12 @@ jobs:
           ### Included Jobs
 
           - **httproute-realtime-analytics.jar** - Real-time HTTPRoute access log analytics
+
+          ### Docker Image
+
+          \`\`\`bash
+          docker pull ghcr.io/billy-davies-2/flink-analytics-jobs:${{ steps.get_version.outputs.VERSION }}
+          \`\`\`
 
           ### Deployment
 
@@ -168,10 +172,10 @@ jobs:
             name: httproute-realtime-analytics
             namespace: analytics
           spec:
-            image: flink:1.20.3-java17
-            flinkVersion: v1_20
+            image: ghcr.io/billy-davies-2/flink-analytics-jobs:${{ steps.get_version.outputs.VERSION }}
+            flinkVersion: v2_0
             job:
-              jarURI: local:///opt/flink/usrlib/httproute-realtime-analytics.jar
+              jarURI: local:///opt/flink/lib/httproute-realtime-analytics-1.0.0-SNAPSHOT-shaded.jar
               parallelism: 2
               upgradeMode: savepoint
               state: running
@@ -197,7 +201,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   docker:
-    needs: version-and-release
+    needs: [build, version-and-release]
     runs-on: ubuntu-latest
     if: needs.version-and-release.outputs.should_release == 'true' || startsWith(github.ref, 'refs/tags/v')
     permissions:
@@ -206,8 +210,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
         with:
-          fetch-depth: 0
+          name: build-artifacts
+          path: .
 
       - name: Set lowercase image name
         id: image_name
@@ -231,35 +239,10 @@ jobs:
           distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: maven
 
-      - name: Build JARs
-        run: mvn clean package -DskipTests -B
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata for Docker
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ steps.image_name.outputs.IMAGE_NAME_LOWER }}
-          tags: |
-            type=semver,pattern={{version}},value=v${{ steps.get_version.outputs.VERSION }}
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Build and push with Jib
+        run: |
+          mvn package jib:build -DskipTests -B \
+            -Djib.to.image=${{ env.REGISTRY }}/${{ steps.image_name.outputs.IMAGE_NAME_LOWER }} \
+            -Djib.to.tags=${{ steps.get_version.outputs.VERSION }},latest \
+            -Djib.to.auth.username=${{ github.actor }} \
+            -Djib.to.auth.password=${{ secrets.GITHUB_TOKEN }}

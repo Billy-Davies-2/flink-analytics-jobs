@@ -219,6 +219,41 @@
                     <classpathScope>compile</classpathScope>
                 </configuration>
             </plugin>
+
+            <!-- Jib for container image building -->
+            <plugin>
+                <groupId>com.google.cloud.tools</groupId>
+                <artifactId>jib-maven-plugin</artifactId>
+                <version>${jib-maven-plugin.version}</version>
+                <configuration>
+                    <from>
+                        <image>flink:2.0.1-java21</image>
+                    </from>
+                    <to>
+                        <image>${docker.image.name}</image>
+                        <tags>
+                            <tag>${project.version}</tag>
+                            <tag>latest</tag>
+                        </tags>
+                    </to>
+                    <container>
+                        <user>flink</user>
+                        <workingDirectory>/opt/flink</workingDirectory>
+                        <environment>
+                            <FLINK_PROPERTIES>taskmanager.numberOfTaskSlots: 2</FLINK_PROPERTIES>
+                        </environment>
+                    </container>
+                    <extraDirectories>
+                        <paths>
+                            <path>
+                                <from>target</from>
+                                <into>/opt/flink/lib</into>
+                                <includes>*-shaded.jar</includes>
+                            </path>
+                        </paths>
+                    </extraDirectories>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>
