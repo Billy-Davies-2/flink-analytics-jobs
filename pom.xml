@@ -28,8 +28,8 @@
         <scala.binary.version>2.12</scala.binary.version>
 
         <!-- Iceberg + Nessie -->
-        <iceberg.version>1.7.0</iceberg.version>
-        <nessie.version>0.95.0</nessie.version>
+        <iceberg.version>1.10.0</iceberg.version>
+        <nessie.version>0.103.6</nessie.version>
 
         <!-- Other dependencies -->
         <jackson.version>2.15.3</jackson.version>
@@ -100,7 +100,7 @@
             <!-- Iceberg -->
             <dependency>
                 <groupId>org.apache.iceberg</groupId>
-                <artifactId>iceberg-flink-runtime-1.20</artifactId>
+                <artifactId>iceberg-flink-runtime-2.0</artifactId>
                 <version>${iceberg.version}</version>
             </dependency>
             <dependency>
