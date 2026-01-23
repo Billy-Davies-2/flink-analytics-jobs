@@ -92,7 +92,7 @@ jobs:
             PATCH=0
             SHOULD_RELEASE="true"
             echo "Bumping minor version"
-          elif echo "$COMMIT_MSG" | grep -iqE '\bfeat\b'; then
+          elif echo "$COMMIT_MSG" | grep -iqE '^(feat|fix)(\(.+\))?:'; then
             PATCH=$((PATCH + 1))
             SHOULD_RELEASE="true"
             echo "Bumping patch version"
