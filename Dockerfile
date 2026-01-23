@@ -1,4 +1,4 @@
-FROM flink:1.20.3-java17
+FROM flink:2.0.1-java21
 
 # Copy the analytics job JARs
 COPY httproute-realtime-analytics/target/httproute-realtime-analytics-*-shaded.jar /opt/flink/usrlib/httproute-realtime-analytics.jar
