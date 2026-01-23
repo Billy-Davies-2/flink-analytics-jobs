@@ -235,7 +235,7 @@ jobs:
 
       - name: Build and push with Jib
         run: |
-          mvn package jib:build -DskipTests -B \
+          mvn package com.google.cloud.tools:jib-maven-plugin:3.4.0:build -DskipTests -B \
             -Djib.to.image=${{ env.REGISTRY }}/${{ steps.image_name.outputs.IMAGE_NAME_LOWER }} \
             -Djib.to.tags=${{ steps.get_version.outputs.VERSION }},latest \
             -Djib.to.auth.username=${{ github.actor }} \
