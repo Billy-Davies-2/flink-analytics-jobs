@@ -76,7 +76,7 @@ public class IcebergSinkFactory {
             "  p99_latency_ms DOUBLE," +
             "  error_rate_pct DOUBLE," +
             "  processing_time TIMESTAMP(3)" +
-            ") PARTITIONED BY (days(window_end))",
+            ") PARTITIONED BY (window_end)",
             fullTableName
         );
 
@@ -103,7 +103,7 @@ public class IcebergSinkFactory {
             "  upstream_cluster STRING," +
             "  client_ip STRING," +
             "  processing_time TIMESTAMP(3)" +
-            ") PARTITIONED BY (days(event_time), error_category)",
+            ") PARTITIONED BY (event_time, error_category)",
             fullTableName
         );
 
@@ -130,7 +130,7 @@ public class IcebergSinkFactory {
             "  request_count BIGINT," +
             "  error_rate_pct DOUBLE," +
             "  severity STRING" +
-            ") PARTITIONED BY (days(alert_time), severity)",
+            ") PARTITIONED BY (alert_time, severity)",
             fullTableName
         );
 
