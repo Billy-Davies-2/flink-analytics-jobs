@@ -220,6 +220,13 @@ jobs:
             echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
           fi
 
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
@@ -232,6 +239,4 @@ jobs:
           mvn install -DskipTests -B
           mvn jib:build -DskipTests -B \
             -pl httproute-realtime-analytics \
-            -Djib.to.tags=${{ steps.get_version.outputs.VERSION }},latest \
-            -Djib.to.auth.username=${{ github.actor }} \
-            -Djib.to.auth.password=${{ secrets.GITHUB_TOKEN }}
+            -Djib.to.tags=${{ steps.get_version.outputs.VERSION }},latest
