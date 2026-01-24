@@ -147,6 +147,11 @@
                 <artifactId>url-connection-client</artifactId>
                 <version>2.21.29</version>
             </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>kms</artifactId>
+                <version>2.21.29</version>
+            </dependency>
 
             <!-- Hadoop for S3A -->
             <dependency>
