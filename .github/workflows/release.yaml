@@ -14,7 +14,7 @@ env:
   JAVA_VERSION: '21'
   JAVA_DISTRIBUTION: 'temurin'
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: billy-davies-2/flink-analytics-jobs
 
 jobs:
   build:
