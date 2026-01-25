@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import io.nats.client.Options;
 
+import java.io.Serializable;
 import java.time.Duration;
 
 /**
@@ -16,8 +17,9 @@ import java.time.Duration;
  * This class provides a fluent API for configuring NATS JetStream consumers with
  * sensible defaults for the homelab environment.
  */
-public class NatsJetStreamSourceConfig {
+public class NatsJetStreamSourceConfig implements Serializable {
 
+    private static final long serialVersionUID = 1L;
     private static final Logger LOG = LoggerFactory.getLogger(NatsJetStreamSourceConfig.class);
 
     // Default configuration values

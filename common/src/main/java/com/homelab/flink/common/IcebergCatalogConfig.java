@@ -7,6 +7,7 @@ import org.apache.flink.table.api.TableEnvironment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,8 +18,9 @@ import java.util.Map;
  * Iceberg tables stored in an S3-compatible object store, using Nessie as
  * the catalog backend for table versioning and management.
  */
-public class IcebergCatalogConfig {
+public class IcebergCatalogConfig implements Serializable {
 
+    private static final long serialVersionUID = 1L;
     private static final Logger LOG = LoggerFactory.getLogger(IcebergCatalogConfig.class);
 
     // Default configuration values
