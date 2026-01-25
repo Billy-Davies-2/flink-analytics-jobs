@@ -94,21 +94,48 @@ public class IcebergCatalogConfig {
         this.branch = config.get(NESSIE_BRANCH);
 
         this.s3Config = new HashMap<>();
+        
+        // S3 endpoint - check config, then env var
         String s3Endpoint = config.get(S3_ENDPOINT);
-        if (s3Endpoint != null) {
+        if (s3Endpoint == null || s3Endpoint.isEmpty()) {
+            s3Endpoint = System.getenv("S3_ENDPOINT");
+        }
+        if (s3Endpoint != null && !s3Endpoint.isEmpty()) {
             s3Config.put("s3.endpoint", s3Endpoint);
         }
+        
+        // S3 access key - check config, then env var
         String s3AccessKey = config.get(S3_ACCESS_KEY);
-        if (s3AccessKey != null) {
+        if (s3AccessKey == null || s3AccessKey.isEmpty()) {
+            s3AccessKey = System.getenv("AWS_ACCESS_KEY_ID");
+        }
+        if (s3AccessKey != null && !s3AccessKey.isEmpty()) {
             s3Config.put("s3.access-key-id", s3AccessKey);
         }
+        
+        // S3 secret key - check config, then env var
         String s3SecretKey = config.get(S3_SECRET_KEY);
-        if (s3SecretKey != null) {
+        if (s3SecretKey == null || s3SecretKey.isEmpty()) {
+            s3SecretKey = System.getenv("AWS_SECRET_ACCESS_KEY");
+        }
+        if (s3SecretKey != null && !s3SecretKey.isEmpty()) {
             s3Config.put("s3.secret-access-key", s3SecretKey);
         }
+        
+        // S3 path style access - check config, then env var, default to true for MinIO/Quobjects
         String s3PathStyle = config.get(S3_PATH_STYLE);
-        if (s3PathStyle != null) {
-            s3Config.put("s3.path-style-access", s3PathStyle);
+        if (s3PathStyle == null || s3PathStyle.isEmpty()) {
+            s3PathStyle = System.getenv("S3_PATH_STYLE_ACCESS");
+        }
+        if (s3PathStyle == null || s3PathStyle.isEmpty()) {
+            s3PathStyle = "true";  // Default for self-hosted S3
+        }
+        s3Config.put("s3.path-style-access", s3PathStyle);
+        
+        // S3 region - needed by AWS SDK even for non-AWS endpoints
+        String s3Region = System.getenv("AWS_REGION");
+        if (s3Region != null && !s3Region.isEmpty()) {
+            s3Config.put("s3.region", s3Region);
         }
     }
 
