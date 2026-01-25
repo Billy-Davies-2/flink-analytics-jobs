@@ -59,24 +59,24 @@ public class IcebergSinkFactory {
 
         String createTableSql = String.format(
             "CREATE TABLE IF NOT EXISTS %s (" +
-            "  http_route STRING," +
-            "  window_start TIMESTAMP(3)," +
-            "  window_end TIMESTAMP(3)," +
-            "  request_count BIGINT," +
-            "  success_count BIGINT," +
-            "  client_error_count BIGINT," +
-            "  server_error_count BIGINT," +
-            "  total_bytes_sent BIGINT," +
-            "  total_bytes_received BIGINT," +
-            "  min_latency_ms BIGINT," +
-            "  max_latency_ms BIGINT," +
-            "  avg_latency_ms DOUBLE," +
-            "  p50_latency_ms DOUBLE," +
-            "  p95_latency_ms DOUBLE," +
-            "  p99_latency_ms DOUBLE," +
-            "  error_rate_pct DOUBLE," +
-            "  processing_time TIMESTAMP(3)" +
-            ") PARTITIONED BY (window_end)",
+            "  httpRoute STRING," +
+            "  windowStart TIMESTAMP(3)," +
+            "  windowEnd TIMESTAMP(3)," +
+            "  requestCount BIGINT," +
+            "  successCount BIGINT," +
+            "  clientErrorCount BIGINT," +
+            "  serverErrorCount BIGINT," +
+            "  totalBytesSent BIGINT," +
+            "  totalBytesReceived BIGINT," +
+            "  minLatencyMs BIGINT," +
+            "  maxLatencyMs BIGINT," +
+            "  avgLatencyMs DOUBLE," +
+            "  p50LatencyMs DOUBLE," +
+            "  p95LatencyMs DOUBLE," +
+            "  p99LatencyMs DOUBLE," +
+            "  errorRatePct DOUBLE," +
+            "  processingTime TIMESTAMP(3)" +
+            ") PARTITIONED BY (windowEnd)",
             fullTableName
         );
 
@@ -92,18 +92,18 @@ public class IcebergSinkFactory {
 
         String createTableSql = String.format(
             "CREATE TABLE IF NOT EXISTS %s (" +
-            "  event_time TIMESTAMP(3)," +
-            "  http_route STRING," +
+            "  eventTime TIMESTAMP(3)," +
+            "  httpRoute STRING," +
             "  hostname STRING," +
             "  `method` STRING," +
             "  `path` STRING," +
-            "  status_code INT," +
-            "  error_category STRING," +
-            "  response_time_ms BIGINT," +
-            "  upstream_cluster STRING," +
-            "  client_ip STRING," +
-            "  processing_time TIMESTAMP(3)" +
-            ") PARTITIONED BY (event_time, error_category)",
+            "  statusCode INT," +
+            "  errorCategory STRING," +
+            "  responseTimeMs BIGINT," +
+            "  upstreamCluster STRING," +
+            "  clientIp STRING," +
+            "  processingTime TIMESTAMP(3)" +
+            ") PARTITIONED BY (eventTime, errorCategory)",
             fullTableName
         );
 
@@ -119,18 +119,18 @@ public class IcebergSinkFactory {
 
         String createTableSql = String.format(
             "CREATE TABLE IF NOT EXISTS %s (" +
-            "  alert_time TIMESTAMP(3)," +
-            "  http_route STRING," +
-            "  window_start TIMESTAMP(3)," +
-            "  window_end TIMESTAMP(3)," +
-            "  p99_latency_ms DOUBLE," +
-            "  p95_latency_ms DOUBLE," +
-            "  avg_latency_ms DOUBLE," +
-            "  threshold_ms BIGINT," +
-            "  request_count BIGINT," +
-            "  error_rate_pct DOUBLE," +
+            "  alertTime TIMESTAMP(3)," +
+            "  httpRoute STRING," +
+            "  windowStart TIMESTAMP(3)," +
+            "  windowEnd TIMESTAMP(3)," +
+            "  p99LatencyMs DOUBLE," +
+            "  p95LatencyMs DOUBLE," +
+            "  avgLatencyMs DOUBLE," +
+            "  thresholdMs BIGINT," +
+            "  requestCount BIGINT," +
+            "  errorRatePct DOUBLE," +
             "  severity STRING" +
-            ") PARTITIONED BY (alert_time, severity)",
+            ") PARTITIONED BY (alertTime, severity)",
             fullTableName
         );
 
@@ -149,23 +149,23 @@ public class IcebergSinkFactory {
 
         // Define schema for RouteMetrics
         Schema schema = Schema.newBuilder()
-            .column("http_route", DataTypes.STRING())
-            .column("window_start", DataTypes.TIMESTAMP(3))
-            .column("window_end", DataTypes.TIMESTAMP(3))
-            .column("request_count", DataTypes.BIGINT())
-            .column("success_count", DataTypes.BIGINT())
-            .column("client_error_count", DataTypes.BIGINT())
-            .column("server_error_count", DataTypes.BIGINT())
-            .column("total_bytes_sent", DataTypes.BIGINT())
-            .column("total_bytes_received", DataTypes.BIGINT())
-            .column("min_latency_ms", DataTypes.BIGINT())
-            .column("max_latency_ms", DataTypes.BIGINT())
-            .column("avg_latency_ms", DataTypes.DOUBLE())
-            .column("p50_latency_ms", DataTypes.DOUBLE())
-            .column("p95_latency_ms", DataTypes.DOUBLE())
-            .column("p99_latency_ms", DataTypes.DOUBLE())
-            .column("error_rate_pct", DataTypes.DOUBLE())
-            .column("processing_time", DataTypes.TIMESTAMP(3))
+            .column("httpRoute", DataTypes.STRING())
+            .column("windowStart", DataTypes.TIMESTAMP(3))
+            .column("windowEnd", DataTypes.TIMESTAMP(3))
+            .column("requestCount", DataTypes.BIGINT())
+            .column("successCount", DataTypes.BIGINT())
+            .column("clientErrorCount", DataTypes.BIGINT())
+            .column("serverErrorCount", DataTypes.BIGINT())
+            .column("totalBytesSent", DataTypes.BIGINT())
+            .column("totalBytesReceived", DataTypes.BIGINT())
+            .column("minLatencyMs", DataTypes.BIGINT())
+            .column("maxLatencyMs", DataTypes.BIGINT())
+            .column("avgLatencyMs", DataTypes.DOUBLE())
+            .column("p50LatencyMs", DataTypes.DOUBLE())
+            .column("p95LatencyMs", DataTypes.DOUBLE())
+            .column("p99LatencyMs", DataTypes.DOUBLE())
+            .column("errorRatePct", DataTypes.DOUBLE())
+            .column("processingTime", DataTypes.TIMESTAMP(3))
             .build();
 
         // Convert DataStream to Table
@@ -185,17 +185,17 @@ public class IcebergSinkFactory {
         LOG.info("Adding sink for ErrorEvents to table {}", fullTableName);
 
         Schema schema = Schema.newBuilder()
-            .column("event_time", DataTypes.TIMESTAMP(3))
-            .column("http_route", DataTypes.STRING())
+            .column("eventTime", DataTypes.TIMESTAMP(3))
+            .column("httpRoute", DataTypes.STRING())
             .column("hostname", DataTypes.STRING())
             .column("method", DataTypes.STRING())
             .column("path", DataTypes.STRING())
-            .column("status_code", DataTypes.INT())
-            .column("error_category", DataTypes.STRING())
-            .column("response_time_ms", DataTypes.BIGINT())
-            .column("upstream_cluster", DataTypes.STRING())
-            .column("client_ip", DataTypes.STRING())
-            .column("processing_time", DataTypes.TIMESTAMP(3))
+            .column("statusCode", DataTypes.INT())
+            .column("errorCategory", DataTypes.STRING())
+            .column("responseTimeMs", DataTypes.BIGINT())
+            .column("upstreamCluster", DataTypes.STRING())
+            .column("clientIp", DataTypes.STRING())
+            .column("processingTime", DataTypes.TIMESTAMP(3))
             .build();
 
         Table table = tableEnv.fromDataStream(stream, schema);
@@ -212,16 +212,16 @@ public class IcebergSinkFactory {
         LOG.info("Adding sink for LatencyAlerts to table {}", fullTableName);
 
         Schema schema = Schema.newBuilder()
-            .column("alert_time", DataTypes.TIMESTAMP(3))
-            .column("http_route", DataTypes.STRING())
-            .column("window_start", DataTypes.TIMESTAMP(3))
-            .column("window_end", DataTypes.TIMESTAMP(3))
-            .column("p99_latency_ms", DataTypes.DOUBLE())
-            .column("p95_latency_ms", DataTypes.DOUBLE())
-            .column("avg_latency_ms", DataTypes.DOUBLE())
-            .column("threshold_ms", DataTypes.BIGINT())
-            .column("request_count", DataTypes.BIGINT())
-            .column("error_rate_pct", DataTypes.DOUBLE())
+            .column("alertTime", DataTypes.TIMESTAMP(3))
+            .column("httpRoute", DataTypes.STRING())
+            .column("windowStart", DataTypes.TIMESTAMP(3))
+            .column("windowEnd", DataTypes.TIMESTAMP(3))
+            .column("p99LatencyMs", DataTypes.DOUBLE())
+            .column("p95LatencyMs", DataTypes.DOUBLE())
+            .column("avgLatencyMs", DataTypes.DOUBLE())
+            .column("thresholdMs", DataTypes.BIGINT())
+            .column("requestCount", DataTypes.BIGINT())
+            .column("errorRatePct", DataTypes.DOUBLE())
             .column("severity", DataTypes.STRING())
             .build();
 
