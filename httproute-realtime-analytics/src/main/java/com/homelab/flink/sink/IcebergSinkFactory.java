@@ -65,23 +65,23 @@ public class IcebergSinkFactory {
 
         String createTableSql = String.format(
             "CREATE TABLE IF NOT EXISTS %s (" +
-            "  httpRoute STRING," +
-            "  windowStart BIGINT," +
-            "  windowEnd BIGINT," +
-            "  requestCount BIGINT," +
-            "  successCount BIGINT," +
-            "  clientErrorCount BIGINT," +
-            "  serverErrorCount BIGINT," +
-            "  totalBytesSent BIGINT," +
-            "  totalBytesReceived BIGINT," +
-            "  minLatencyMs BIGINT," +
-            "  maxLatencyMs BIGINT," +
-            "  avgLatencyMs DOUBLE," +
-            "  p50LatencyMs DOUBLE," +
-            "  p95LatencyMs DOUBLE," +
-            "  p99LatencyMs DOUBLE," +
-            "  errorRatePct DOUBLE," +
-            "  processingTime BIGINT" +
+            "  http_route STRING," +
+            "  window_start TIMESTAMP(6)," +
+            "  window_end TIMESTAMP(6)," +
+            "  request_count BIGINT," +
+            "  success_count BIGINT," +
+            "  client_error_count BIGINT," +
+            "  server_error_count BIGINT," +
+            "  total_bytes_sent BIGINT," +
+            "  total_bytes_received BIGINT," +
+            "  min_latency_ms BIGINT," +
+            "  max_latency_ms BIGINT," +
+            "  avg_latency_ms DOUBLE," +
+            "  p50_latency_ms DOUBLE," +
+            "  p95_latency_ms DOUBLE," +
+            "  p99_latency_ms DOUBLE," +
+            "  error_rate_pct DOUBLE," +
+            "  processing_time TIMESTAMP(6)" +
             ")",
             fullTableName
         );
@@ -98,17 +98,17 @@ public class IcebergSinkFactory {
 
         String createTableSql = String.format(
             "CREATE TABLE IF NOT EXISTS %s (" +
-            "  eventTime BIGINT," +
-            "  httpRoute STRING," +
+            "  event_time TIMESTAMP(6)," +
+            "  http_route STRING," +
             "  hostname STRING," +
             "  `method` STRING," +
             "  `path` STRING," +
-            "  statusCode INT," +
-            "  errorCategory STRING," +
-            "  responseTimeMs BIGINT," +
-            "  upstreamCluster STRING," +
-            "  clientIp STRING," +
-            "  processingTime BIGINT" +
+            "  status_code INT," +
+            "  error_category STRING," +
+            "  response_time_ms BIGINT," +
+            "  upstream_cluster STRING," +
+            "  client_ip STRING," +
+            "  processing_time TIMESTAMP(6)" +
             ")",
             fullTableName
         );
@@ -125,16 +125,16 @@ public class IcebergSinkFactory {
 
         String createTableSql = String.format(
             "CREATE TABLE IF NOT EXISTS %s (" +
-            "  alertTime BIGINT," +
-            "  httpRoute STRING," +
-            "  windowStart BIGINT," +
-            "  windowEnd BIGINT," +
-            "  p99LatencyMs DOUBLE," +
-            "  p95LatencyMs DOUBLE," +
-            "  avgLatencyMs DOUBLE," +
-            "  thresholdMs BIGINT," +
-            "  requestCount BIGINT," +
-            "  errorRatePct DOUBLE," +
+            "  alert_time TIMESTAMP(6)," +
+            "  http_route STRING," +
+            "  window_start TIMESTAMP(6)," +
+            "  window_end TIMESTAMP(6)," +
+            "  p99_latency_ms DOUBLE," +
+            "  p95_latency_ms DOUBLE," +
+            "  avg_latency_ms DOUBLE," +
+            "  threshold_ms BIGINT," +
+            "  request_count BIGINT," +
+            "  error_rate_pct DOUBLE," +
             "  severity STRING" +
             ")",
             fullTableName
@@ -151,6 +151,7 @@ public class IcebergSinkFactory {
      */
     public void addRouteMetricsSink(DataStream<RouteMetrics> stream, String tableName) {
         String fullTableName = database + "." + tableName;
+        String tempViewName = "route_metrics_" + tableName.replace("route_metrics_", "") + "_temp";
         LOG.info("Adding sink for RouteMetrics to table {}", fullTableName);
 
         // Define schema for RouteMetrics (using BIGINT for epoch millis timestamps)
@@ -174,11 +175,37 @@ public class IcebergSinkFactory {
             .column("processingTime", DataTypes.BIGINT())
             .build();
 
-        // Convert DataStream to Table
+        // Convert DataStream to Table and register as temporary view
         Table table = tableEnv.fromDataStream(stream, schema);
+        tableEnv.createTemporaryView(tempViewName, table);
+
+        // Build INSERT SQL with BIGINT to TIMESTAMP conversion and column renaming
+        String insertSql = String.format(
+            "INSERT INTO %s " +
+            "SELECT " +
+            "  httpRoute AS http_route, " +
+            "  TO_TIMESTAMP_LTZ(windowStart, 3) AS window_start, " +
+            "  TO_TIMESTAMP_LTZ(windowEnd, 3) AS window_end, " +
+            "  requestCount AS request_count, " +
+            "  successCount AS success_count, " +
+            "  clientErrorCount AS client_error_count, " +
+            "  serverErrorCount AS server_error_count, " +
+            "  totalBytesSent AS total_bytes_sent, " +
+            "  totalBytesReceived AS total_bytes_received, " +
+            "  minLatencyMs AS min_latency_ms, " +
+            "  maxLatencyMs AS max_latency_ms, " +
+            "  avgLatencyMs AS avg_latency_ms, " +
+            "  p50LatencyMs AS p50_latency_ms, " +
+            "  p95LatencyMs AS p95_latency_ms, " +
+            "  p99LatencyMs AS p99_latency_ms, " +
+            "  errorRatePct AS error_rate_pct, " +
+            "  TO_TIMESTAMP_LTZ(processingTime, 3) AS processing_time " +
+            "FROM %s",
+            fullTableName, tempViewName
+        );
 
         // Add to statement set (will be executed later with execute())
-        statementSet.addInsert(fullTableName, table);
+        statementSet.addInsertSql(insertSql);
     }
 
     /**
@@ -188,6 +215,7 @@ public class IcebergSinkFactory {
      */
     public void addErrorEventsSink(DataStream<ErrorEvent> stream) {
         String fullTableName = database + ".error_events";
+        String tempViewName = "error_events_temp";
         LOG.info("Adding sink for ErrorEvents to table {}", fullTableName);
 
         Schema schema = Schema.newBuilder()
@@ -204,10 +232,31 @@ public class IcebergSinkFactory {
             .column("processingTime", DataTypes.BIGINT())
             .build();
 
+        // Convert DataStream to Table and register as temporary view
         Table table = tableEnv.fromDataStream(stream, schema);
-        
+        tableEnv.createTemporaryView(tempViewName, table);
+
+        // Build INSERT SQL with BIGINT to TIMESTAMP conversion and column renaming
+        String insertSql = String.format(
+            "INSERT INTO %s " +
+            "SELECT " +
+            "  TO_TIMESTAMP_LTZ(eventTime, 3) AS event_time, " +
+            "  httpRoute AS http_route, " +
+            "  hostname, " +
+            "  `method`, " +
+            "  `path`, " +
+            "  statusCode AS status_code, " +
+            "  errorCategory AS error_category, " +
+            "  responseTimeMs AS response_time_ms, " +
+            "  upstreamCluster AS upstream_cluster, " +
+            "  clientIp AS client_ip, " +
+            "  TO_TIMESTAMP_LTZ(processingTime, 3) AS processing_time " +
+            "FROM %s",
+            fullTableName, tempViewName
+        );
+
         // Add to statement set (will be executed later with execute())
-        statementSet.addInsert(fullTableName, table);
+        statementSet.addInsertSql(insertSql);
     }
 
     /**
@@ -217,6 +266,7 @@ public class IcebergSinkFactory {
      */
     public void addLatencyAlertsSink(DataStream<LatencyAlert> stream) {
         String fullTableName = database + ".latency_alerts";
+        String tempViewName = "latency_alerts_temp";
         LOG.info("Adding sink for LatencyAlerts to table {}", fullTableName);
 
         Schema schema = Schema.newBuilder()
@@ -233,10 +283,31 @@ public class IcebergSinkFactory {
             .column("severity", DataTypes.STRING())
             .build();
 
+        // Convert DataStream to Table and register as temporary view
         Table table = tableEnv.fromDataStream(stream, schema);
-        
+        tableEnv.createTemporaryView(tempViewName, table);
+
+        // Build INSERT SQL with BIGINT to TIMESTAMP conversion and column renaming
+        String insertSql = String.format(
+            "INSERT INTO %s " +
+            "SELECT " +
+            "  TO_TIMESTAMP_LTZ(alertTime, 3) AS alert_time, " +
+            "  httpRoute AS http_route, " +
+            "  TO_TIMESTAMP_LTZ(windowStart, 3) AS window_start, " +
+            "  TO_TIMESTAMP_LTZ(windowEnd, 3) AS window_end, " +
+            "  p99LatencyMs AS p99_latency_ms, " +
+            "  p95LatencyMs AS p95_latency_ms, " +
+            "  avgLatencyMs AS avg_latency_ms, " +
+            "  thresholdMs AS threshold_ms, " +
+            "  requestCount AS request_count, " +
+            "  errorRatePct AS error_rate_pct, " +
+            "  severity " +
+            "FROM %s",
+            fullTableName, tempViewName
+        );
+
         // Add to statement set (will be executed later with execute())
-        statementSet.addInsert(fullTableName, table);
+        statementSet.addInsertSql(insertSql);
     }
 
     /**
