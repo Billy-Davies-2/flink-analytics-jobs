@@ -66,8 +66,8 @@ public class IcebergSinkFactory {
         String createTableSql = String.format(
             "CREATE TABLE IF NOT EXISTS %s (" +
             "  httpRoute STRING," +
-            "  windowStart TIMESTAMP(3)," +
-            "  windowEnd TIMESTAMP(3)," +
+            "  windowStart BIGINT," +
+            "  windowEnd BIGINT," +
             "  requestCount BIGINT," +
             "  successCount BIGINT," +
             "  clientErrorCount BIGINT," +
@@ -81,8 +81,8 @@ public class IcebergSinkFactory {
             "  p95LatencyMs DOUBLE," +
             "  p99LatencyMs DOUBLE," +
             "  errorRatePct DOUBLE," +
-            "  processingTime TIMESTAMP(3)" +
-            ") PARTITIONED BY (windowEnd)",
+            "  processingTime BIGINT" +
+            ")",
             fullTableName
         );
 
@@ -98,7 +98,7 @@ public class IcebergSinkFactory {
 
         String createTableSql = String.format(
             "CREATE TABLE IF NOT EXISTS %s (" +
-            "  eventTime TIMESTAMP(3)," +
+            "  eventTime BIGINT," +
             "  httpRoute STRING," +
             "  hostname STRING," +
             "  `method` STRING," +
@@ -108,8 +108,8 @@ public class IcebergSinkFactory {
             "  responseTimeMs BIGINT," +
             "  upstreamCluster STRING," +
             "  clientIp STRING," +
-            "  processingTime TIMESTAMP(3)" +
-            ") PARTITIONED BY (eventTime, errorCategory)",
+            "  processingTime BIGINT" +
+            ")",
             fullTableName
         );
 
@@ -125,10 +125,10 @@ public class IcebergSinkFactory {
 
         String createTableSql = String.format(
             "CREATE TABLE IF NOT EXISTS %s (" +
-            "  alertTime TIMESTAMP(3)," +
+            "  alertTime BIGINT," +
             "  httpRoute STRING," +
-            "  windowStart TIMESTAMP(3)," +
-            "  windowEnd TIMESTAMP(3)," +
+            "  windowStart BIGINT," +
+            "  windowEnd BIGINT," +
             "  p99LatencyMs DOUBLE," +
             "  p95LatencyMs DOUBLE," +
             "  avgLatencyMs DOUBLE," +
@@ -136,7 +136,7 @@ public class IcebergSinkFactory {
             "  requestCount BIGINT," +
             "  errorRatePct DOUBLE," +
             "  severity STRING" +
-            ") PARTITIONED BY (alertTime, severity)",
+            ")",
             fullTableName
         );
 
@@ -153,11 +153,11 @@ public class IcebergSinkFactory {
         String fullTableName = database + "." + tableName;
         LOG.info("Adding sink for RouteMetrics to table {}", fullTableName);
 
-        // Define schema for RouteMetrics
+        // Define schema for RouteMetrics (using BIGINT for epoch millis timestamps)
         Schema schema = Schema.newBuilder()
             .column("httpRoute", DataTypes.STRING())
-            .column("windowStart", DataTypes.TIMESTAMP(3))
-            .column("windowEnd", DataTypes.TIMESTAMP(3))
+            .column("windowStart", DataTypes.BIGINT())
+            .column("windowEnd", DataTypes.BIGINT())
             .column("requestCount", DataTypes.BIGINT())
             .column("successCount", DataTypes.BIGINT())
             .column("clientErrorCount", DataTypes.BIGINT())
@@ -171,7 +171,7 @@ public class IcebergSinkFactory {
             .column("p95LatencyMs", DataTypes.DOUBLE())
             .column("p99LatencyMs", DataTypes.DOUBLE())
             .column("errorRatePct", DataTypes.DOUBLE())
-            .column("processingTime", DataTypes.TIMESTAMP(3))
+            .column("processingTime", DataTypes.BIGINT())
             .build();
 
         // Convert DataStream to Table
@@ -191,7 +191,7 @@ public class IcebergSinkFactory {
         LOG.info("Adding sink for ErrorEvents to table {}", fullTableName);
 
         Schema schema = Schema.newBuilder()
-            .column("eventTime", DataTypes.TIMESTAMP(3))
+            .column("eventTime", DataTypes.BIGINT())
             .column("httpRoute", DataTypes.STRING())
             .column("hostname", DataTypes.STRING())
             .column("method", DataTypes.STRING())
@@ -201,7 +201,7 @@ public class IcebergSinkFactory {
             .column("responseTimeMs", DataTypes.BIGINT())
             .column("upstreamCluster", DataTypes.STRING())
             .column("clientIp", DataTypes.STRING())
-            .column("processingTime", DataTypes.TIMESTAMP(3))
+            .column("processingTime", DataTypes.BIGINT())
             .build();
 
         Table table = tableEnv.fromDataStream(stream, schema);
@@ -220,10 +220,10 @@ public class IcebergSinkFactory {
         LOG.info("Adding sink for LatencyAlerts to table {}", fullTableName);
 
         Schema schema = Schema.newBuilder()
-            .column("alertTime", DataTypes.TIMESTAMP(3))
+            .column("alertTime", DataTypes.BIGINT())
             .column("httpRoute", DataTypes.STRING())
-            .column("windowStart", DataTypes.TIMESTAMP(3))
-            .column("windowEnd", DataTypes.TIMESTAMP(3))
+            .column("windowStart", DataTypes.BIGINT())
+            .column("windowEnd", DataTypes.BIGINT())
             .column("p99LatencyMs", DataTypes.DOUBLE())
             .column("p95LatencyMs", DataTypes.DOUBLE())
             .column("avgLatencyMs", DataTypes.DOUBLE())
