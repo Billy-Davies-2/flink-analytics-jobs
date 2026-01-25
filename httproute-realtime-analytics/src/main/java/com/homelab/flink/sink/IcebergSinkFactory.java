@@ -95,8 +95,8 @@ public class IcebergSinkFactory {
             "  event_time TIMESTAMP(3)," +
             "  http_route STRING," +
             "  hostname STRING," +
-            "  method STRING," +
-            "  path STRING," +
+            "  `method` STRING," +
+            "  `path` STRING," +
             "  status_code INT," +
             "  error_category STRING," +
             "  response_time_ms BIGINT," +
