@@ -7,6 +7,7 @@ import com.homelab.flink.model.RouteMetrics;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.api.Schema;
+import org.apache.flink.table.api.StatementSet;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.slf4j.Logger;
@@ -17,6 +18,9 @@ import org.slf4j.LoggerFactory;
  * 
  * This factory manages the creation of Iceberg tables and the connection
  * of Flink DataStreams to those tables for writing analytics results.
+ * 
+ * Uses StatementSet to batch all INSERT operations into a single execute() call,
+ * which is required for Flink's application mode.
  */
 public class IcebergSinkFactory {
 
@@ -24,6 +28,7 @@ public class IcebergSinkFactory {
 
     private final StreamTableEnvironment tableEnv;
     private final String database;
+    private final StatementSet statementSet;
 
     /**
      * Creates an IcebergSinkFactory for the specified database.
@@ -34,6 +39,7 @@ public class IcebergSinkFactory {
     public IcebergSinkFactory(StreamTableEnvironment tableEnv, String database) {
         this.tableEnv = tableEnv;
         this.database = database;
+        this.statementSet = tableEnv.createStatementSet();
     }
 
     /**
@@ -171,8 +177,8 @@ public class IcebergSinkFactory {
         // Convert DataStream to Table
         Table table = tableEnv.fromDataStream(stream, schema);
 
-        // Insert into Iceberg table
-        table.executeInsert(fullTableName);
+        // Add to statement set (will be executed later with execute())
+        statementSet.addInsert(fullTableName, table);
     }
 
     /**
@@ -199,7 +205,9 @@ public class IcebergSinkFactory {
             .build();
 
         Table table = tableEnv.fromDataStream(stream, schema);
-        table.executeInsert(fullTableName);
+        
+        // Add to statement set (will be executed later with execute())
+        statementSet.addInsert(fullTableName, table);
     }
 
     /**
@@ -226,6 +234,20 @@ public class IcebergSinkFactory {
             .build();
 
         Table table = tableEnv.fromDataStream(stream, schema);
-        table.executeInsert(fullTableName);
+        
+        // Add to statement set (will be executed later with execute())
+        statementSet.addInsert(fullTableName, table);
+    }
+
+    /**
+     * Executes all registered sink operations.
+     * 
+     * This must be called after all sinks have been added. It batches all INSERT
+     * operations into a single execute() call, which is required for Flink's
+     * application mode (cannot have multiple execute() calls).
+     */
+    public void execute() {
+        LOG.info("Executing all Iceberg sink operations");
+        statementSet.execute();
     }
 }

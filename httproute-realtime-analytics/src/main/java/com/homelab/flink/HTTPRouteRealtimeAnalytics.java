@@ -158,8 +158,9 @@ public class HTTPRouteRealtimeAnalytics {
 
         sinkFactory.addLatencyAlertsSink(latencyAlerts);
 
-        // Execute the job
-        env.execute("HTTPRoute Real-Time Analytics");
+        // Execute all sink operations as a single job
+        // (StatementSet batches all INSERTs into one execute() call)
+        sinkFactory.execute();
     }
 
     /**
