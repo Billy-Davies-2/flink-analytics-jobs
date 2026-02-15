@@ -165,14 +165,20 @@ public class HTTPRouteRealtimeAnalytics {
 
     /**
      * Parses command line arguments into a Map.
+     * Supports both {@code --key=value} and {@code --key value} formats.
      */
     private static java.util.Map<String, String> parseArgs(String[] args) {
         java.util.Map<String, String> map = new java.util.HashMap<>();
-        for (String arg : args) {
-            if (arg.startsWith("--")) {
-                String[] parts = arg.substring(2).split("=", 2);
+        for (int i = 0; i < args.length; i++) {
+            if (args[i].startsWith("--")) {
+                String keyPart = args[i].substring(2);
+                String[] parts = keyPart.split("=", 2);
                 if (parts.length == 2) {
+                    // --key=value format
                     map.put(parts[0], parts[1]);
+                } else if (i + 1 < args.length && !args[i + 1].startsWith("--")) {
+                    // --key value format
+                    map.put(keyPart, args[++i]);
                 }
             }
         }

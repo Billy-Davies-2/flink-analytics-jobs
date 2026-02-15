@@ -29,7 +29,7 @@
 
         <!-- Iceberg + Nessie -->
         <iceberg.version>1.10.0</iceberg.version>
-        <nessie.version>0.103.6</nessie.version>
+        <nessie.version>0.104.5</nessie.version>
 
         <!-- Other dependencies -->
         <jackson.version>2.15.3</jackson.version>

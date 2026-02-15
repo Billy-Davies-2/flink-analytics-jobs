@@ -24,7 +24,7 @@ public class IcebergCatalogConfig implements Serializable {
     private static final Logger LOG = LoggerFactory.getLogger(IcebergCatalogConfig.class);
 
     // Default configuration values
-    public static final String DEFAULT_NESSIE_URI = "http://nessie.analytics.svc.cluster.local:19120/api/v1";
+    public static final String DEFAULT_NESSIE_URI = "http://nessie.analytics.svc.cluster.local:19120/api/v2";
     public static final String DEFAULT_WAREHOUSE = "s3a://iceberg-warehouse";
     public static final String DEFAULT_CATALOG_NAME = "nessie";
     public static final String DEFAULT_BRANCH = "main";
@@ -169,8 +169,6 @@ public class IcebergCatalogConfig implements Serializable {
 
         // Nessie-specific settings
         props.put("io-impl", "org.apache.iceberg.aws.s3.S3FileIO");
-        props.put("nessie.client-builder-impl", 
-            "org.projectnessie.client.http.HttpClientBuilder");
 
         // Add S3 configuration if present
         props.putAll(s3Config);
