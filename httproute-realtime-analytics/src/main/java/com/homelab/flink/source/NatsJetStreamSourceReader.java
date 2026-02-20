@@ -59,6 +59,28 @@ public class NatsJetStreamSourceReader implements SourceReader<AccessLog, NatsJe
         isRunning = new AtomicBoolean(true);
         availabilityFuture = new CompletableFuture<>();
         
+        ensureConnected();
+    }
+
+    /**
+     * Lazily connect to NATS if not already connected.
+     * 
+     * Flink 2.0 may call addSplits() before start() during checkpoint recovery,
+     * so connections must be established on-demand rather than only in start().
+     */
+    private synchronized void ensureConnected() {
+        if (natsConnection != null && natsConnection.getStatus() == Connection.Status.CONNECTED) {
+            return;
+        }
+
+        // Initialise lifecycle fields if start() has not run yet
+        if (isRunning == null) {
+            isRunning = new AtomicBoolean(true);
+        }
+        if (availabilityFuture == null) {
+            availabilityFuture = new CompletableFuture<>();
+        }
+
         try {
             connectToNats();
         } catch (Exception e) {
@@ -190,6 +212,7 @@ public class NatsJetStreamSourceReader implements SourceReader<AccessLog, NatsJe
     private void setupSubscription(NatsJetStreamSplit split) throws Exception {
         LOG.info("Setting up subscription for split {}", split.splitId());
         
+        ensureConnected();
         JetStreamManagement jsm = natsConnection.jetStreamManagement();
         
         // Ensure stream exists
@@ -273,13 +296,17 @@ public class NatsJetStreamSourceReader implements SourceReader<AccessLog, NatsJe
     public void close() throws Exception {
         LOG.info("Closing NATS JetStream source reader");
         
-        isRunning.set(false);
+        if (isRunning != null) {
+            isRunning.set(false);
+        }
         
-        for (JetStreamSubscription subscription : subscriptions.values()) {
-            try {
-                subscription.drain(Duration.ofSeconds(5));
-            } catch (Exception e) {
-                LOG.warn("Error draining subscription", e);
+        if (subscriptions != null) {
+            for (JetStreamSubscription subscription : subscriptions.values()) {
+                try {
+                    subscription.drain(Duration.ofSeconds(5));
+                } catch (Exception e) {
+                    LOG.warn("Error draining subscription", e);
+                }
             }
         }
         
